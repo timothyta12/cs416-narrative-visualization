@@ -1,46 +1,185 @@
 <html>
 <script src='https://d3js.org/d3.v5.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/d3-annotation/2.5.1/d3-annotation.min.js'></script>
 <style> circle {fill: lightblue; stroke: black;} </style>
+<style>
+  .chart rect { fill: steelblue; }
+  #tooltip {
+    opacity: 0;
+    position: absolute;
+    text-align: center;
+    width: 50px; height: 40px;
+    background: white;
+    border: 0px;
+  }
+</style>
+
 <body onload='init()'>
-<svg width=300 height=300>
+
+<h1>Fuel Efficiency of Cars by Fuel Source</h1>
+
+<div>
+    <input type="checkbox" name="Electricity" id="Electricity">
+    <label for="Electricity">Electricity</label>
+    <input type="checkbox" name="Gasoline" id="Gasoline">
+    <label for="Gasoline">Gasoline</label>
+    <input type="checkbox" name="Diesel" id="Diesel">
+    <label for="Diesel">Diesel</label>
+    <br>
+    <p1>Hover over points to view details of the vehicle</p1>
+</div>
+
+<svg width=1000 height=1000>
 </svg>
+<div id = "tooltip"></div>
 <script>
 async function init() {
   const data = await d3.csv('https://flunky.github.io/cars2017.csv');
 
+const make = data.map(d => d.Make);
+const fuel = data.map(d => d.Fuel);
 const averageCityMPG = data.map(d => +d.AverageCityMPG);
 const averageHighwayMPG = data.map(d => +d.AverageHighwayMPG);
 const engineCylinders= data.map(d => +d.EngineCylinders);
 
-var xs = d3.scaleLog([10,150],[0,200]).base(10);
+var xs = d3.scaleLog([10,150],[0, 500]).base(10);
 const x = averageCityMPG.map(value => xs(value));
-var ys = d3.scaleLog([10,150],[200, 0]).base(10);
+var ys = d3.scaleLog([10,150],[500, 0]).base(10);
 const y = averageHighwayMPG.map(value => ys(value));
 const rs = engineCylinders.map(value => value + 2);
 
-d3.select("body")
-  .select("svg")
-  .append("g")
-  .attr("transform", "translate(50,50)")
-  .selectAll("circle")
-  .data(data)
-  .enter()
-  .append("circle")
-  .attr("cx", function(d, i) { return x[i]; })
-  .attr("cy", function(d, i) { return y[i]; })
-  .attr("r", function(d, i) { return rs[i]; });
-
+var tooltip = d3.select("#tooltip");
 var margin = 50;
 
-d3.select("body").select("svg")
-  .append("g")
-  .attr("transform", "translate(50,50)")
-  .call(d3.axisLeft(ys).tickValues([10,20,50,100]));
+d3.select("#Electricity").on("change", update);
+d3.select("#Gasoline").on("change", update);
+d3.select("#Diesel").on("change", update);
+update();
 
-d3.select("body").select("svg")
-  .append("g")
-  .attr("transform", "translate(50,250)")
-  .call(d3.axisBottom(xs).tickValues([10,20,50,100]));
+function update()
+{
+    // Reset Frame
+    d3.select("body").select("svg").selectAll("g").remove()
+
+    if (d3.select("#Electricity").property("checked"))
+    {
+        const annotations = [
+            {
+                note: { label: "Electricity is an efficient fuel source, often being around 100 MPGe" },
+                x: 500,
+                y: 120,
+                dy: 100,
+                dx: 10,
+                type: d3.annotationCalloutCircle,
+                subject: { radius: 80, radiusPadding: 0 },
+            },
+        ];
+
+        const makeAnnotations = d3.annotation().annotations(annotations);
+        d3.select("body").select("svg")
+        .append("g")
+        .attr("class", "annotation-group")
+        .call(makeAnnotations)
+    }
+
+    if (d3.select("#Gasoline").property("checked"))
+    {
+        const annotations = d3.select("#Electricity").property("checked")
+        ? [
+            {
+                note: { label: "Fuel efficiency of gasoline cars vary greatly, but don't come close to electricity" },
+                x: 170,
+                y: 370,
+                dy: 40,
+                dx: 10,
+                type: d3.annotationCalloutCircle,
+                subject: { radius: 170, radiusPadding: 0 },
+            },
+        ] : [
+            {
+                note: { label: "Fuel efficiency of gasoline cars vary greatly" },
+                x: 170,
+                y: 370,
+                dy: 40,
+                dx: 10,
+                type: d3.annotationCalloutCircle,
+                subject: { radius: 170, radiusPadding: 0 },
+            },
+        ];
+
+        const makeAnnotations = d3.annotation().annotations(annotations);
+        d3.select("body").select("svg")
+        .append("g")
+        .attr("class", "annotation-group")
+        .call(makeAnnotations)
+    }
+
+    // Create datapoints
+    d3.select("body")
+    .select("svg")
+    .append("g")
+    .attr("transform", "translate(" + margin + "," + margin + ")")
+    .selectAll("circle")
+    .data(data)
+    .enter()
+    .append("circle")
+    .attr("cx", function(d, i) { return x[i]; })
+    .attr("cy", function(d, i) { return y[i]; })
+    .attr("r", 6)
+    .style("fill", function(d, i) { return FuelToColor(fuel[i]) } )
+    .style("opacity", function(d, i) { return d3.select("#"+fuel[i]).property("checked") ? 1 : 0; })
+    .on("mouseover", function(d, i) {
+        tooltip.style("opacity", d3.select("#"+fuel[i]).property("checked") ? 1 : 0 )
+            .style("left", (d3.event.pageX)+"px")
+            .style("top", (d3.event.pageY)+"px")
+            .html("Make: "+make[i] + " City MPG: "+ averageCityMPG[i].toFixed() + " Highway MPG: " + averageHighwayMPG[i].toFixed());
+    })
+    .on("mouseout", function() { tooltip.style("opacity", 0) });
+
+    // Y Axis
+    d3.select("body").select("svg")
+    .append("g")
+    .attr("transform", "translate(" + margin + "," + margin + ")")
+    .call(d3.axisLeft(ys)
+        .tickValues([10,20,50,100])
+        .tickFormat(d3.format("~s"))
+        );
+    d3.select("body").select("svg").append("text")
+    .attr("x", -340)
+    .attr("y", 20)
+    .attr("transform", "rotate(-90)")
+    .text("Average Highway MPG");
+
+    // X Axis
+    d3.select("body").select("svg")
+    .append("g")
+    .attr("transform", "translate(" + margin + "," + 550 + ")")
+    .call(d3.axisBottom(xs)
+        .tickValues([10,20,50,100])
+        .tickFormat(d3.format("~s"))
+        );
+    d3.select("body").select("svg").append("text")
+    .attr("x", 250)
+    .attr("y", 600)
+    .text("Average City MPG");
+}
+
+function FuelToColor(Fuel)
+{
+    if (Fuel == "Electricity")
+    {
+        return "green";
+    }
+    else if (Fuel == "Gasoline")
+    {
+        return "lightblue";
+    }
+    else if (Fuel == "Diesel")
+    {
+        return "red"
+    }
+};
+
 
 }
 </script>
