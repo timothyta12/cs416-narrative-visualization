@@ -16,17 +16,21 @@
 
 <body onload='init()'>
 
-<h1>Fuel Efficiency of Cars by Fuel Source</h1>
+<h1>Exploring Fuel Efficiencies of Vehicles Based on Fuel Source</h1>
+<p1>Data Source: <a href=https://flunky.github.io/cars2017.csv>https://flunky.github.io/cars2017.csv</a></p1>
 
 <div>
-    <input type="checkbox" name="Electricity" id="Electricity">
-    <label for="Electricity">Electricity</label>
-    <input type="checkbox" name="Gasoline" id="Gasoline">
-    <label for="Gasoline">Gasoline</label>
-    <input type="checkbox" name="Diesel" id="Diesel">
-    <label for="Diesel">Diesel</label>
+    <label for="Slider">Page Selector</label><br>
+    <input type="range" name="Slider" id="Slider", min="1" max="5" value="1" list="markers">
+    <datalist id="markers">
+        <option value="1" label="Page 1"></option>
+        <option value="2"></option>
+        <option value="3"></option>
+        <option value="4"></option>
+        <option value="5"></option>
+    </datalist>
     <br>
-    <p1>Hover over points to view details of the vehicle</p1>
+    <p1>Hover over points to view details of the vehicle such as the Make and MPG values</p1>
 </div>
 
 <svg width=1000 height=1000>
@@ -34,7 +38,7 @@
 <div id = "tooltip"></div>
 <script>
 async function init() {
-  const data = await d3.csv('https://flunky.github.io/cars2017.csv');
+const data = await d3.csv('https://flunky.github.io/cars2017.csv');
 
 const make = data.map(d => d.Make);
 const fuel = data.map(d => d.Fuel);
@@ -51,21 +55,56 @@ const rs = engineCylinders.map(value => value + 2);
 var tooltip = d3.select("#tooltip");
 var margin = 50;
 
-d3.select("#Electricity").on("change", update);
-d3.select("#Gasoline").on("change", update);
-d3.select("#Diesel").on("change", update);
+d3.select("#Slider").on("change", update);
 update();
+
 
 function update()
 {
     // Reset Frame
     d3.select("body").select("svg").selectAll("g").remove()
 
-    if (d3.select("#Electricity").property("checked"))
+    d3.select("body").select("svg").append("circle").attr("cx", 650).attr("cy", 200).attr("r", 4).style("fill", "yellow");
+    d3.select("body").select("svg").append("text").attr("x", 670).attr("y", 200).text("Diesel").attr("alignment-baseline","middle");
+    d3.select("body").select("svg").append("circle").attr("cx", 650).attr("cy", 220).attr("r", 4).style("fill", "lightblue");
+    d3.select("body").select("svg").append("text").attr("x", 670).attr("y", 220).text("Gasoline").attr("alignment-baseline","middle");
+    d3.select("body").select("svg").append("circle").attr("cx", 650).attr("cy", 240).attr("r", 4).style("fill", "green");
+    d3.select("body").select("svg").append("text").attr("x", 670).attr("y", 240).text("Electricity").attr("alignment-baseline","middle");
+
+    annotations = []
+    if (d3.select("#Slider").property("value") == 2)
     {
-        const annotations = [
+        annotations = [
             {
-                note: { label: "Electricity is an efficient fuel source, often being around 100 MPGe" },
+                note: { label: "Diesel cars get a modest amount of fuel efficiency averaging about 25 MPG in the city and 33 MPG on the highway" },
+                x: xs(25)+margin,
+                y: ys(33)+margin,
+                dy: 100,
+                dx: 10,
+                type: d3.annotationCalloutCircle,
+                subject: { radius: 70, radiusPadding: 0 },
+            },
+        ];
+    }
+    else if (d3.select("#Slider").property("value") == 3)
+    {
+        annotations = [
+            {
+                note: { label: "Fuel efficiency of gasoline cars vary greatly, ranging from as few as 10 MPG to 50 MPG" },
+                x: 170,
+                y: 370,
+                dy: 40,
+                dx: 10,
+                type: d3.annotationCalloutCircle,
+                subject: { radius: 170, radiusPadding: 0 },
+            },
+        ];
+    }
+    else if (d3.select("#Slider").property("value") == 4)
+    {
+        annotations = [
+            {
+                note: { label: "Electricity dominates gasoline and diesel cars in terms of efficiency, often offering an equilivant MPG of over 100" },
                 x: 500,
                 y: 120,
                 dy: 100,
@@ -74,45 +113,30 @@ function update()
                 subject: { radius: 80, radiusPadding: 0 },
             },
         ];
-
-        const makeAnnotations = d3.annotation().annotations(annotations);
-        d3.select("body").select("svg")
-        .append("g")
-        .attr("class", "annotation-group")
-        .call(makeAnnotations)
     }
-
-    if (d3.select("#Gasoline").property("checked"))
+    else if (d3.select("#Slider").property("value") == 5)
     {
-        const annotations = d3.select("#Electricity").property("checked")
-        ? [
+        annotations = [
             {
-                note: { label: "Fuel efficiency of gasoline cars vary greatly, but don't come close to electricity" },
-                x: 170,
-                y: 370,
-                dy: 40,
-                dx: 10,
-                type: d3.annotationCalloutCircle,
-                subject: { radius: 170, radiusPadding: 0 },
-            },
-        ] : [
-            {
-                note: { label: "Fuel efficiency of gasoline cars vary greatly" },
-                x: 170,
-                y: 370,
-                dy: 40,
-                dx: 10,
-                type: d3.annotationCalloutCircle,
-                subject: { radius: 170, radiusPadding: 0 },
+                note: { label: "Hyundai, with an electric car, is the most fuel efficient with an impressive 150 City MPGe and 122 Highway MPGe" },
+                x: xs(150)+margin,
+                y: ys(122)+margin,
+                dy: 100,
+                dx: 0,
+                type: d3.annotationLabel,
+                subject: { radius: 80, radiusPadding: 0 },
+                connector: {
+                    end: "arrow"
+                }
             },
         ];
-
-        const makeAnnotations = d3.annotation().annotations(annotations);
-        d3.select("body").select("svg")
-        .append("g")
-        .attr("class", "annotation-group")
-        .call(makeAnnotations)
     }
+
+    const makeAnnotations = d3.annotation().annotations(annotations);
+    d3.select("body").select("svg")
+    .append("g")
+    .attr("class", "annotation-group")
+    .call(makeAnnotations)
 
     // Create datapoints
     d3.select("body")
@@ -125,11 +149,11 @@ function update()
     .append("circle")
     .attr("cx", function(d, i) { return x[i]; })
     .attr("cy", function(d, i) { return y[i]; })
-    .attr("r", 6)
+    .attr("r", 5)
     .style("fill", function(d, i) { return FuelToColor(fuel[i]) } )
-    .style("opacity", function(d, i) { return d3.select("#"+fuel[i]).property("checked") ? 1 : 0; })
+    .style("opacity", function(d, i) { return SlideFuelVisible(fuel[i]) })
     .on("mouseover", function(d, i) {
-        tooltip.style("opacity", d3.select("#"+fuel[i]).property("checked") ? 1 : 0 )
+        tooltip.style("opacity", SlideFuelVisible(fuel[i]) )
             .style("left", (d3.event.pageX)+"px")
             .style("top", (d3.event.pageY)+"px")
             .html("Make: "+make[i] + " City MPG: "+ averageCityMPG[i].toFixed() + " Highway MPG: " + averageHighwayMPG[i].toFixed());
@@ -166,19 +190,32 @@ function update()
 
 function FuelToColor(Fuel)
 {
+    switch (Fuel) {
+        case "Electricity":
+            return "green"
+        case "Gasoline":
+            return "lightblue"
+        case "Diesel":
+            return "yellow"
+    }
+};
+
+function SlideFuelVisible(Fuel)
+{
     if (Fuel == "Electricity")
     {
-        return "green";
+        return d3.select("#Slider").property("value") > 3 ? 1 : 0;
     }
     else if (Fuel == "Gasoline")
     {
-        return "lightblue";
+        return d3.select("#Slider").property("value") > 2 ? 1 : 0;
     }
     else if (Fuel == "Diesel")
     {
-        return "red"
+        return d3.select("#Slider").property("value") > 1 ? 1 : 0;
     }
-};
+    return 0;
+}
 
 
 }
